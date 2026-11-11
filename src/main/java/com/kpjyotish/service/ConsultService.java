@@ -247,10 +247,25 @@ public class ConsultService {
     public void generate(String reportId) {
         pool.submit(() -> {
             Report r = db.reports.findById(reportId).orElse(null);
-            if (r == null) return;
+            if (r != null) build(r, true);
+        });
+    }
+
+    /**
+     * Free hosts (e.g. Hugging Face Spaces) wipe files on restart. The report content and translations
+     * are in the database, so a missing PDF is simply rebuilt (a few seconds) before it is served.
+     */
+    public synchronized void ensureFiles(Report r) {
+        if (!"ready".equals(r.status) || (Files.exists(fullPath(r.id)) && Files.exists(previewPath(r.id)))) return;
+        log.info("rebuilding missing PDF files for report {}", r.id);
+        build(r, false);
+    }
+
+    void build(Report r, boolean announce) {
+            String reportId = r.id;
             try {
                 String lang = r.language == null ? "en" : r.language;
-                r.status = "generating"; r.error = null; db.reports.save(r);
+                if (announce) { r.status = "generating"; r.error = null; db.reports.save(r); }
                 English e = english(r);
                 User account = e.account(), person = e.person();
                 Chart c = e.chart();
@@ -280,15 +295,14 @@ public class ConsultService {
                 Files.write(previewPath(r.id), preview);
                 r.status = "ready"; r.pages = full.pages(); r.source = source;
                 r.hookJson = JSON.writeValueAsString(hook);
-                r.generatedAt = Instant.now().toString();
+                if (announce) r.generatedAt = Instant.now().toString();
                 db.reports.save(r);
-                notify.reportReady(account, r);
+                if (announce) notify.reportReady(account, r);
                 log.info("report {} ready: {} pages ({})", r.id, r.pages, r.source);
             } catch (Exception e) {
                 log.error("report {} failed", reportId, e);
                 r.status = "failed"; r.error = String.valueOf(e.getMessage()); db.reports.save(r);
             }
-        });
     }
 
     /** Report as JSON for the portals (with person, reason and dates). */

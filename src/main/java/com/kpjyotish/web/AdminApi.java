@@ -103,6 +103,7 @@ public class AdminApi {
     @GetMapping("/reports/{id}/report.pdf")
     public ResponseEntity<FileSystemResource> pdf(@PathVariable String id, @RequestParam(required = false) String preview, @RequestParam(required = false) String view, HttpServletRequest req) {
         admin(req);
+        db.reports.findById(id).ifPresent(consult::ensureFiles);
         return ClientApi.pdf(preview != null ? consult.previewPath(id) : consult.fullPath(id), "report-" + id + ".pdf", false, view != null);
     }
 

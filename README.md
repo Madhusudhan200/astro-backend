@@ -1,3 +1,12 @@
+---
+title: Astrology Talk Backend
+colorFrom: yellow
+colorTo: red
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Astro-backend — Astrology Talk server (Java 17 + Spring Boot)
 
 The backend for **Astrology Talk**, a KP (Krishnamurti Paddhati) horoscope website. It serves the **Astro-frontend** pages and the `/api` used by them.
@@ -62,3 +71,22 @@ src/main/java/com/kpjyotish/
 Notes:
 - The local `.env` file is not used on Render; set values in Render → Environment instead.
 - Back up the disk regularly (Render → Disks → Snapshots).
+
+## Free hosting (no card needed): Hugging Face Spaces + Neon
+
+- **Neon** (neon.tech, sign up with GitHub) is a free Postgres database. Create a project and copy the connection string (`postgresql://...neon.tech/neondb?sslmode=require`).
+- **Hugging Face Spaces** (huggingface.co, free account):
+  1. Click **New Space** and choose SDK **Docker** with the **Blank** template. Name it `astro-backend` and make it **Public**.
+  2. Push this repo to the Space (`git push hf main`). The YAML header at the top of this README tells Hugging Face to run the Dockerfile on port 7860.
+  3. In Space → **Settings → Variables and secrets**, add the secrets:
+     - `DB_URL` = the Neon connection string
+     - `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `JWT_SECRET` (any long random text)
+     - `SITE_URL` = your Vercel address
+     - `COOKIE_SECURE` = `true`
+  4. The backend runs at `https://<hf-username>-astro-backend.hf.space`. Put that address in the frontend's `vercel.json`.
+
+Notes for the free tier:
+- Data (customers, chats, reports, saved keys) lives in Neon, so it is kept when the Space restarts.
+- Report PDFs are rebuilt automatically after a restart.
+- The place database is downloaded again on each start (about 1 minute).
+- A free Space sleeps after 48 hours without visitors; the next visit wakes it up in about 1–2 minutes.

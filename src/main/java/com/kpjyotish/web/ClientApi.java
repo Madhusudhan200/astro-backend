@@ -170,6 +170,7 @@ public class ClientApi {
     @GetMapping("/reports/{id}/preview.pdf")
     public ResponseEntity<FileSystemResource> preview(@PathVariable String id, @RequestParam(required = false) String view, HttpServletRequest req) {
         Report r = myReport(me(req), id);
+        consult.ensureFiles(r);
         return pdf(consult.previewPath(r.id), "kp-report-preview.pdf", false, view != null);
     }
 
@@ -177,6 +178,7 @@ public class ClientApi {
     public ResponseEntity<FileSystemResource> full(@PathVariable String id, @RequestParam(required = false) String download, @RequestParam(required = false) String view, HttpServletRequest req) {
         Report r = myReport(me(req), id);
         if (!r.unlocked) throw new ApiException(402, "Please unlock the full report");
+        consult.ensureFiles(r);
         return pdf(consult.fullPath(r.id), "kp-horoscope-" + r.id + ".pdf", download != null, view != null);
     }
 }
