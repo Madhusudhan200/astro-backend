@@ -2,7 +2,9 @@
 // Pure JS: planetary positions from astronomy-engine, Placidus cusps,
 // KP (Krishnamurti) ayanamsa, star / sub / sub-sub lords, significators,
 // ruling planets and Vimshottari dasha.
-import * as A from 'astronomy-engine';
+import { createRequire } from 'module';
+// CommonJS build: its ESM build lacks a "type": "module" marker and fails on Vercel's Node
+const A = createRequire(import.meta.url)('astronomy-engine');
 
 const D2R = Math.PI / 180;
 const R2D = 180 / Math.PI;

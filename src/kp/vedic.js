@@ -1,5 +1,7 @@
 // Vedic knowledge base + extra calculations (divisional charts, panchang, transits) for the full report.
-import * as A from 'astronomy-engine';
+import { createRequire } from 'module';
+// CommonJS build: its ESM build lacks a "type": "module" marker and fails on Vercel's Node
+const A = createRequire(import.meta.url)('astronomy-engine');
 import { SIGNS, SIGN_LORDS, NAKSHATRAS, kpAyanamsa, tropicalLongitude, norm, planetOf } from './engine.js';
 
 export { SIGNS };
