@@ -39,4 +39,6 @@ export async function source(key) {
 }
 
 export const siteName = () => get('SITE_NAME', 'Astrology Talk');
-export const siteUrl = () => get('SITE_URL', 'http://localhost:' + (process.env.PORT || 8090));
+// On Vercel the project's own address is known automatically
+const defaultUrl = () => (process.env.VERCEL_PROJECT_PRODUCTION_URL ? 'https://' + process.env.VERCEL_PROJECT_PRODUCTION_URL : 'http://localhost:' + (process.env.PORT || 8090));
+export const siteUrl = async () => (await get('SITE_URL', defaultUrl())).replace(/\/+$/, '');

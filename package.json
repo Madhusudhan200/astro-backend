@@ -11,7 +11,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "places:import": "node scripts/import-places.js"
+    "places:import": "node scripts/import-places.js",
+    "sync:frontend": "node scripts/sync-frontend.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

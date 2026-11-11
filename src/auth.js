@@ -11,11 +11,14 @@ export class ApiError extends Error {
 let secret = null;
 function key() {
   if (!secret) {
-    const s = process.env.JWT_SECRET;
+    let s = process.env.JWT_SECRET;
     if (!s || s.startsWith('change-me')) {
-      console.warn('[auth] JWT_SECRET not set - using a random one (sessions reset on restart)');
-      secret = crypto.randomBytes(32).toString('hex');
-    } else secret = crypto.createHash('sha256').update(s).digest('hex');
+      // No JWT_SECRET: derive a stable secret from the (private) database address, so every serverless
+      // instance agrees and logins survive restarts. Random only for a local database without a URL.
+      const db = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.DB_URL;
+      s = db ? 'astrology-talk|' + db : crypto.randomBytes(32).toString('hex');
+    }
+    secret = crypto.createHash('sha256').update(s).digest('hex');
   }
   return secret;
 }

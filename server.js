@@ -18,7 +18,10 @@ if (fs.existsSync(envFile)) {
 const { createApp, init } = await import('./src/app.js');
 const app = createApp();
 const site = process.env.FRONTEND_DIR || path.join(here, '..', 'frontend');
-if (fs.existsSync(site)) app.use(express.static(site, { extensions: ['html'] }));
+if (fs.existsSync(site)) {
+  app.use(/^\/(node_modules|package(-lock)?\.json)/, (req, res) => res.status(404).end());
+  app.use(express.static(site, { extensions: ['html'] }));
+}
 
 const port = Number(process.env.PORT || 8090);
 app.listen(port, async () => {
