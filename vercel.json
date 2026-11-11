@@ -3,7 +3,7 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 300,
-      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+      "includeFiles": "{node_modules/@sparticuz/chromium/bin/**,node_modules/astronomy-engine/**}"
     }
   },
   "rewrites": [
