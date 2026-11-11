@@ -1,0 +1,16 @@
+# build output
+target/
+
+# secrets - never commit (copy .env.example to .env)
+.env
+
+# runtime data: database (customers, chats, saved keys), generated PDFs, fonts, place database
+data/
+
+# editors / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+*.log
