@@ -12,7 +12,8 @@ import java.util.Optional;
 public class Repos {
     public interface Users extends JpaRepository<User, String> {
         Optional<User> findByEmail(String email);
-        Optional<User> findByUsernameIgnoreCase(String username);
+        List<User> findAllByUsernameIgnoreCase(String username);
+        List<User> findByRole(String role);
         boolean existsByUsername(String username);
         List<User> findByRoleOrderByCreatedAtDesc(String role);
         long countByRole(String role);

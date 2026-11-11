@@ -37,13 +37,36 @@ public class PublicApi {
     @EventListener(ApplicationReadyEvent.class)
     public void seedAdmin() {
         String email = env.get("ADMIN_EMAIL", "admin@astrologytalk.local").toLowerCase(Locale.ROOT);
-        if (db.users.findFirstByRoleAndEmail("admin", email).isEmpty()) {
-            User a = new User();
-            a.role = "admin"; a.fullName = "Administrator"; a.email = email; a.username = "admin";
-            a.passwordHash = Auth.BCRYPT.encode(env.get("ADMIN_PASSWORD", "Admin@123"));
-            db.users.save(a);
+        String password = env.get("ADMIN_PASSWORD", "Admin@123");
+        User a = db.users.findFirstByRoleAndEmail("admin", email).orElse(null);
+        if (a == null) {
+            a = new User();
+            a.role = "admin"; a.fullName = "Administrator"; a.email = email;
+            a.passwordHash = Auth.BCRYPT.encode(password);
             log.info("created admin account {}", email);
+        } else {
+            // If ADMIN_PASSWORD was changed (e.g. in Render > Environment), apply the new value once.
+            // A password changed later in the admin portal stays until ADMIN_PASSWORD changes again.
+            String applied = db.setting("adminPasswordFromEnv", "");
+            String fingerprint = Integer.toHexString((email + "|" + password).hashCode());
+            if (!applied.equals(fingerprint) && !Auth.BCRYPT.matches(password, a.passwordHash)) {
+                a.passwordHash = Auth.BCRYPT.encode(password);
+                log.info("admin password for {} updated from ADMIN_PASSWORD", email);
+            }
+            db.setSetting("adminPasswordFromEnv", fingerprint);
         }
+        // The main admin owns the login ID "admin"; older admin accounts get their own IDs
+        for (User other : db.users.findByRole("admin")) {
+            if (!other.email.equals(email) && "admin".equalsIgnoreCase(other.username)) {
+                // e.g. admin@kpjyotish.local -> login ID "admin-kpjyotish"
+                String[] parts = other.email.split("@");
+                other.username = parts[0] + "-" + (parts.length > 1 ? parts[1].split("\\.")[0] : other.id.substring(other.id.length() - 4));
+                db.users.save(other);
+            }
+        }
+        a.username = "admin";
+        db.users.save(a);
+        if (db.setting("adminPasswordFromEnv", "").isEmpty()) db.setSetting("adminPasswordFromEnv", Integer.toHexString((email + "|" + password).hashCode()));
         log.info("\n\n  Astrology Talk running at http://localhost:{}\n  Payments: {}\n  AI: {}\n",
                 env.get("PORT", "3000"), rzp.live() ? "Razorpay (UPI / PhonePe / GPay / cards)" : "DEMO mode - add RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET to .env for real payments",
                 ai.enabled() ? "smart answers (" + ai.model() + ")" : "built-in KP astrologer (add a smart-answers key in Admin > Settings for free-form answers)");
@@ -119,8 +142,14 @@ public class PublicApi {
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody Map<String, String> b, HttpServletResponse res) {
         String login = clean(b.get("login"), 120).toLowerCase(Locale.ROOT);
-        User u = db.users.findByEmail(login).or(() -> db.users.findByUsernameIgnoreCase(login)).orElse(null);
-        if (u == null || !Auth.BCRYPT.matches(String.valueOf(b.get("password")), u.passwordHash)) throw new ApiException(401, "Invalid login or password");
+        String pw = String.valueOf(b.get("password"));
+        if (login.isEmpty() || pw.isEmpty() || "null".equals(pw)) throw new ApiException(400, "Please enter your email / login ID and password");
+        // Email first, then login ID (tolerant of duplicate IDs from older versions)
+        List<User> candidates = new ArrayList<>();
+        db.users.findByEmail(login).ifPresent(candidates::add);
+        candidates.addAll(db.users.findAllByUsernameIgnoreCase(login));
+        User u = candidates.stream().filter(x -> x.passwordHash != null && Auth.BCRYPT.matches(pw, x.passwordHash)).findFirst().orElse(null);
+        if (u == null) throw new ApiException(401, candidates.isEmpty() ? "No account found with this email or login ID" : "Wrong password. Use “Forgot password?” to reset it.");
         auth.login(res, u);
         return Map.of("user", u);
     }
