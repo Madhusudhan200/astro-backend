@@ -43,3 +43,22 @@ src/main/java/com/kpjyotish/
   service/   ConsultService, Notifier, Razorpay, Auth
   web/       REST controllers
 ```
+
+## Deploy on Render
+
+1. On render.com: **New → Blueprint**, then connect GitHub and choose **astro-backend**. Render reads `render.yaml`:
+   - a Docker web service `astro-backend` in the Singapore region
+   - plan **Standard (2 GB)**: the place database and PDF rendering need it, and the 512 MB plans run out of memory
+   - a **2 GB persistent disk** at `/app/data` for the database, reports and fonts, so nothing is lost on redeploy
+   - health check `/api/config`
+2. Fill in the values Render asks for:
+   - `SITE_URL` = your Vercel URL, e.g. `https://astro-frontend.vercel.app`. If you don't have it yet, put a placeholder and update it after deploying the frontend.
+   - `ADMIN_EMAIL` / `ADMIN_PASSWORD` = your admin login
+   - Optional: `SMTP_USER` / `SMTP_PASS` (Gmail address + App Password), `ADMIN_NOTIFY_EMAIL`, and Razorpay keys. All of these can also be added later in Admin → Settings → Integrations.
+3. Click **Apply**. The first deploy takes about 5–8 minutes: Maven builds the jar, then the first start downloads the birth-place database (about 1 minute).
+4. Your backend URL is shown at the top of the service, e.g. `https://astro-backend.onrender.com`. Opening `/api/config` there should show JSON.
+5. **Razorpay webhook:** in the Razorpay Dashboard → Settings → Webhooks, add `https://astro-backend.onrender.com/api/razorpay/webhook`, select the events `payment.captured` and `order.paid`, and set the same secret as `RAZORPAY_WEBHOOK_SECRET`.
+
+Notes:
+- The local `.env` file is not used on Render; set values in Render → Environment instead.
+- Back up the disk regularly (Render → Disks → Snapshots).
